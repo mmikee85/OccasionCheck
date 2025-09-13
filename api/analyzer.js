@@ -8,15 +8,18 @@ function createUnifiedPrompt(url) {
     **URL:** ${url}
 
     **PROTOCOL:**
-    1.  **ONDERZOEK URL:** Bezoek de URL met je 'google_search_retrieval' tool. Is het een leesbare auto-advertentie?
+    1.  **ONDERZOEK URL:** Bezoek de URL met je 'google_search_retrieval' tool. Analyseer de volledige HTML-broncode. Is het een leesbare auto-advertentie?
     2.  **KIES MODUS:**
         * **SPECIFIEKE ANALYSE:** Als de pagina leesbaar is. Zet 'isSpecificAdAnalysis' op 'true'. Haal data direct van de pagina.
         * **ALGEMENE ANALYSE:** Als de pagina niet bruikbaar is (fout/blokkade). Zet 'isSpecificAdAnalysis' op 'false'. Gebruik je algemene kennis over het model uit de URL.
     3.  **VOER UIT:** Genereer het JSON-object volgens de gekozen modus en de onderstaande structuur.
 
-    **BELANGRIJKSTE REGELS:**
-    * **Prijs:** Vind de VRAAGPRIJS. Deze is prominent, vaak bij de titel. Converteer naar een getal (bv. 34890). Negeer andere getallen. Voor algemene analyse, maak een schatting.
-    * **Kilometerstand:** Vind de exacte 'KM stand'. Voor algemene analyse, geef een typische waarde.
+    **TECHNISCHE HINTS VOOR HTML-ANALYSE (ZEER BELANGRIJK):**
+    Jouw primaire taak is om de HTML-structuur te analyseren.
+    - **Prijs (price):** Zoek naar HTML-elementen (zoals <span> of <div>) waarvan de 'class' attribuut woorden bevat zoals 'Price', 'price', 'amount', of 'prijs'. De waarde binnen dit element is de meest betrouwbare prijs. Negeer alle andere getallen op de pagina. Converteer naar een getal (bv. 34890).
+    - **Kilometerstand (specs):** Zoek naar elementen met een 'class' die 'km', 'mileage', 'kilometerstand', of 'kenmerk-kilometerstand' bevat.
+    - **Titel:** De titel staat bijna altijd in de \`<h1>\` tag.
+    - **Specificaties:** Zoek naar een \`<ul>\` of \`<table>\` met specificaties. De class hiervan bevat vaak 'specs', 'kenmerken', of 'specifications'.
     
     **GEEF NU EEN GELDIG JSON-OBJECT TERUG MET DEZE STRUCTUUR:**
     {
