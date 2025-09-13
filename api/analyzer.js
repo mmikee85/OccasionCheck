@@ -1,72 +1,58 @@
 // Importeer de officiële Google AI package
-const { GoogleGenerativeAI } = require('@google-generative-ai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Initialiseer de Gemini client met de API sleutel die we later in Vercel instellen
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Functie om de instructies voor de AI te genereren
+// --- Functie om de instructies voor de AI te genereren ---
 function createUnifiedPrompt(url) {
-    return `Je bent 'OccasionCheck AI', een expert in het analyseren van auto-advertenties. Je antwoordt ALTIJD met een JSON-object. Geef GEEN extra tekst voor of na het JSON-object.
+    return `Je bent 'OccasionCheck AI', een expert in het analyseren van auto-advertenties. Je antwoordt ALTIJD en UITSLUITEND met een JSON-object. Geef GEEN extra tekst zoals '\`\`\`json' voor of na het object.
 
-    **URL van de te analyseren advertentie:** ${url}
+    **URL:** ${url}
 
-    **PROTOCOL (VOLG DEZE STAPPEN PRECIES):**
+    **PROTOCOL:**
+    1.  **ONDERZOEK URL:** Bezoek de URL met je 'google_search_retrieval' tool. Is het een leesbare auto-advertentie?
+    2.  **KIES MODUS:**
+        * **SPECIFIEKE ANALYSE:** Als de pagina leesbaar is. Zet 'isSpecificAdAnalysis' op 'true'. Haal data direct van de pagina.
+        * **ALGEMENE ANALYSE:** Als de pagina niet bruikbaar is (fout/blokkade). Zet 'isSpecificAdAnalysis' op 'false'. Gebruik je algemene kennis over het model uit de URL.
+    3.  **VOER UIT:** Genereer het JSON-object volgens de gekozen modus en de onderstaande structuur.
 
-    1.  **ONDERZOEK DE URL**: Gebruik je 'google_search_retrieval' tool om de webpagina op de URL te bezoeken en te lezen. Bepaal of de inhoud een valide, leesbare auto-advertentie is.
+    **BELANGRIJKSTE REGELS:**
+    * **Prijs:** Vind de VRAAGPRIJS. Deze is prominent, vaak bij de titel. Converteer naar een getal (bv. 34890). Negeer andere getallen. Voor algemene analyse, maak een schatting.
+    * **Kilometerstand:** Vind de exacte 'KM stand'. Voor algemene analyse, geef een typische waarde.
     
-    2.  **KIES JE MODUS**:
-        * **Als de pagina een valide, leesbare advertentie bevat**: Voer een **SPECIFIEKE ANALYSE** uit. Zet 'isSpecificAdAnalysis' op 'true'. Baseer je antwoorden op de data die je **direct van de pagina** haalt.
-        * **Als de pagina NIET bruikbaar is (bv. een fout, blokkade, of geen advertentie)**: Voer een **ALGEMENE FALLBACK ANALYSE** uit. Zet 'isSpecificAdAnalysis' op 'false'. Baseer je antwoorden op je algemene kennis over het automodel dat waarschijnlijk in de URL wordt genoemd.
-
-    **INSTRUCTIES VOOR SPECIFIEKE ANALYSE (isSpecificAdAnalysis: true)**
-    * **price**: Vind de **exacte vraagprijs** op de pagina en converteer dit naar een getal.
-    * **specs**: Haal waarden (vooral kilometerstand) **direct van de pagina**.
-    * **Analyse**: Baseer alle tekstuele analyses (pluspunten, minpunten, advies, etc.) op de specifieke details van de advertentie.
-    * **score**: Beoordeel de **specifieke deal** uit de advertentie.
-
-    **INSTRUCTIES VOOR ALGEMENE FALLBACK ANALYSE (isSpecificAdAnalysis: false)**
-    * **price**: Maak een realistische **schatting** voor dit model en bouwjaar.
-    * **specs**: Gebruik **algemene** data voor dit model.
-    * **Analyse**: Schrijf **algemene** teksten over het model.
-    * **score**: Beoordeel het **model in het algemeen** als occasion.
-
-    ---
-    **VOER NU DE GEKOZEN ANALYSE UIT EN GEEF EEN GELDIG JSON-OBJECT TERUG MET DE VOLGENDE STRUCTUUR:**
-    \`\`\`json
+    **GEEF NU EEN GELDIG JSON-OBJECT TERUG MET DEZE STRUCTUUR:**
     {
       "isSpecificAdAnalysis": true,
-      "title": "Voorbeeld Titel",
+      "title": "...",
       "photos": ["url1", "url2", "url3", "url4"],
-      "marketAnalysis": "Voorbeeld marktanalyse.",
+      "marketAnalysis": "...",
       "price": 12345,
-      "specs": {
-        "Merk": "Voorbeeld Merk",
-        "Model": "Voorbeeld Model",
-        "Bouwjaar": "2020",
-        "Kilometerstand": "12345 km",
-        "Brandstof": "Benzine",
-        "Transmissie": "Automaat"
-      },
-      "pluspunten": ["Voorbeeld pluspunt 1"],
-      "minpunten": ["Voorbeeld minpunt 1"],
-      "onderhandelingsadvies": "Voorbeeld onderhandelingsadvies.",
-      "eindconclusie": "Voorbeeld eindconclusie.",
+      "specs": { "Merk": "...", "Model": "...", "Bouwjaar": "...", "Kilometerstand": "...", "Brandstof": "...", "Transmissie": "..." },
+      "pluspunten": ["..."],
+      "minpunten": ["..."],
+      "onderhandelingsadvies": "...",
+      "eindconclusie": "...",
       "score": 8.5
     }
-    \`\`\`
     `;
 }
 
-// Dit is de hoofd export, de functie die Vercel zal aanroepen
+// --- De hoofd export, de functie die Vercel zal aanroepen ---
 module.exports = async (req, res) => {
-    console.log("GEMINI_API_KEY gevonden:", !!process.env.GEMINI_API_KEY);
-    const targetUrl = req.query.url;
-
-    if (!targetUrl) {
-        return res.status(400).json({ error: 'Geen URL meegegeven.' });
-    }
-
     try {
+        // Stap 1: Controleer de API sleutel direct.
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            console.error("FATALE FOUT: GEMINI_API_KEY is niet gevonden in de serveromgeving.");
+            throw new Error("API sleutel is niet geconfigureerd op de server.");
+        }
+        
+        // Initialiseer de client. Als dit mislukt, wordt het nu opgevangen.
+        const genAI = new GoogleGenerativeAI(apiKey);
+
+        const targetUrl = req.query.url;
+        if (!targetUrl) {
+            return res.status(400).json({ error: 'Geen URL meegegeven.' });
+        }
+
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash-latest",
         });
@@ -80,31 +66,24 @@ module.exports = async (req, res) => {
         
         const responseText = result.response.text();
         
-        // --- ROBUUSTE PARSING LOGICA (DE "SLIMME SCHAAR") ---
         const jsonStartIndex = responseText.indexOf('{');
         const jsonEndIndex = responseText.lastIndexOf('}');
 
         if (jsonStartIndex === -1 || jsonEndIndex === -1) {
-            console.error('Geen geldig JSON-object gevonden in het AI-antwoord:', responseText);
+            console.error('AI-antwoord bevatte geen JSON:', responseText);
             throw new Error('De AI gaf een onverwacht antwoord dat geen JSON-data bevatte.');
         }
 
         const jsonString = responseText.substring(jsonStartIndex, jsonEndIndex + 1);
-        let analysisData;
-        try {
-            analysisData = JSON.parse(jsonString);
-        } catch (parseError) {
-             console.error('Fout bij het parsen van de uitgeknipte JSON:', parseError);
-             console.error('Ontvangen (corrupte JSON) tekst van Gemini:', jsonString);
-             throw new Error('De AI gaf een onverwacht antwoord en de data kon niet worden gelezen.');
-        }
+        const analysisData = JSON.parse(jsonString);
 
         res.status(200).json(analysisData);
 
     } catch (error) {
-        console.error('Fout tijdens de volledige analyse:', error);
+        // Deze catch-block vangt nu ALLES op, inclusief initialisatiefouten.
+        console.error('Fout opgevangen in de hoofdfunctie:', error);
         res.status(500).json({
-            error: error.message || "Er is een onbekende fout opgetreden bij de AI-analyse."
+            error: error.message || "Er is een onbekende serverfout opgetreden."
         });
     }
 };
