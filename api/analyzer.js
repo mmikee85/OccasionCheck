@@ -1,5 +1,5 @@
 // Importeer de officiële Google AI package
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI } = require('@google-generative-ai');
 
 // Initialiseer de Gemini client met de API sleutel die we later in Vercel instellen
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -36,13 +36,14 @@ module.exports = async (req, res) => {
         
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
 
-        // *** HIER IS DE CORRECTIE ***
         // We verpakken de systemPrompt nu in de juiste objectstructuur die de API verwacht.
         const chat = model.startChat({
             systemInstruction: {
                 parts: [{ text: systemPrompt }],
             },
-            tools: [{ "google_search": {} }]
+            // *** HIER IS DE CORRECTIE ***
+            // De naam van de tool is bijgewerkt van 'google_search' naar 'google_search_retrieval'.
+            tools: [{ "google_search_retrieval": {} }]
         });
         
         const result = await chat.sendMessage(userPrompt);
