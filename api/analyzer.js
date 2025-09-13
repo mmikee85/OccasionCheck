@@ -1,5 +1,5 @@
 // Importeer de officiële Google AI package
-const { GoogleGenerativeAI } = require('@google-generative-ai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // --- Functie om de instructies voor de AI te genereren ---
 function createUnifiedPrompt(url) {
