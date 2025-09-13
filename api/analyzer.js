@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
         });
 
         const systemPrompt = `
-            Je bent een hypernauwkeurige Nederlandse auto-data-extractor. Jouw enige taak is het analyseren van EEN SPECIFIEKE URL en het teruggeven van een 100% correct JSON-object. Nauwkeurigheid is het allerbelangrijkste. Het is beter om een fout te retourneren dan onjuiste data.
+            Je bent een hypernauwkeurige Nederlandse auto-data-extractor. Jouw enige taak is het analyseren van EEN SPECIFIEKE URL en het teruggeven van een 100% correct JSON-object. Nauwkeurigheid is het allerbelangrijkste.
             WIJK NOOIT AF VAN DIT JSON-FORMAAT. GEEF ALLEEN HET JSON-OBJECT TERUG.
 
             **BELANGRIJKE FOUTAFHANDELING:** Als je de URL om welke reden dan ook niet kunt openen, analyseren, of als de pagina geen autoadvertentie is, geef dan **ALTIJD** het volgende JSON-object terug:
@@ -36,15 +36,13 @@ module.exports = async (req, res) => {
               "minpunten": ["string"], "onderhandelingsadvies": ["string"],
               "eindconclusie": "string", "score": number, "marketAnalysis": "string"
             }
-            Gebruik de GOOGLE_SEARCH tool om de opgegeven URL te bezoeken en alle benodigde informatie te verzamelen.
             
-            **JE DENKPROCES IN STAPPEN (VOLG DIT VERPLICHT):**
-            1.  **STAP 1: IDENTIFICATIE.** Bezoek de URL en identificeer het hoofdvoertuig van de advertentie. Noteer de titel, de vraagprijs en de kilometerstand.
-            2.  **STAP 2: VERIFICATIE (EXTREEM BELANGRIJK).** Controleer nu je gevonden data. Komt de prijs en kilometerstand daadwerkelijk uit het hoofdonderdeel van de advertentie, of heb je het per ongeluk uit een 'vergelijkbare advertenties' sectie gehaald? Pas je data aan als dit nodig is. De correcte prijs staat meestal direct onder de titel en is prominent aanwezig. Het is vaak geformatteerd als '€ 34.890,-'. Herken dit, en converteer het naar een getal (bv. 34890).
-            3.  **STAP 3: CONCLUSIE.** NADAT je de correcte data hebt geverifieerd in stap 2, vul je het JSON-object in. Vergelijk de geverifieerde prijs met de marktwaarde en schrijf je conclusie in 'marketAnalysis'.
-            
-            **AANVULLENDE REGELS:**
-            - **Analyseer UITSLUITEND de content van de opgegeven URL.** - **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). FALLBACK: Gebruik 'placehold.co' URLs als je geen echte foto's kunt vinden.
+            **CRUCIALE REGELS VOOR NAUWKEURIGHEID:**
+            1.  **BRON:** Analyseer **UITSLUITEND** de data van de hoofdadvertentie op de opgegeven URL. Negeer alle data uit secties zoals 'vergelijkbare advertenties'.
+            2.  **VERIFICATIE:** Voordat je antwoordt, **VERIFIEER** dat de prijs en kilometerstand die je hebt gevonden, echt horen bij de auto in de titel. Dit is de belangrijkste stap.
+            3.  **PRIJS (price):** De correcte prijs is de VRAAGPRIJS. Deze staat vaak prominent onder de titel in een formaat als '€ 34.890,-'. Herken dit, en converteer het naar een puur getal (bv. 34890).
+            4.  **MARKTANALYSE (marketAnalysis):** Vergelijk de geverifieerde prijs met de marktwaarde en schrijf een korte conclusie in het Nederlands.
+            5.  **FOTO'S (photos):** Zoek de EERSTE VIER hoofdafbeeldingen. De URLs MOETEN compleet zijn (beginnend met http of https). FALLBACK: Gebruik 'placehold.co' URLs als je geen echte foto's kunt vinden.
         `;
 
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
