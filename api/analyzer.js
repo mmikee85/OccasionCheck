@@ -38,11 +38,14 @@ module.exports = async (req, res) => {
               "eindconclusie": "string", "score": number
             }
             Gebruik de GOOGLE_SEARCH tool om de opgegeven URL te bezoeken en alle benodigde informatie te verzamelen.
-            - Prijs (price): Geef dit terug als een getal (number), zonder valutasymbolen of punten.
-            - Foto's (photos): Haal de URLs van de eerste 4 hoofdafbeeldingen op.
-            - Specificaties (specs): Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, etc.
-            - Analyse: Bepaal op basis van alle informatie de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
-            Als je een veld niet kunt vinden, geef dan een logische standaardwaarde terug (bv. 0 voor prijs, een lege array []).
+            
+            **ZEER SPECIFIEKE INSTRUCTIES:**
+            - **Prijs (price):** Zoek specifiek naar de VRAAGPRIJS. Negeer andere getallen zoals maandbedragen. Geef dit terug als een getal (number), zonder valutasymbolen of punten.
+            - **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. Zorg ervoor dat de URLs compleet en absoluut zijn (beginnend met http of https). 
+              **FALLBACK:** Als je geen geldige, complete foto-URL's kunt vinden, geef dan een array terug met vier placeholder URLs van 'placehold.co', bijvoorbeeld: ["https://placehold.co/600x400/333/FFF?text=Foto+1", "https://placehold.co/600x400/333/FFF?text=Foto+2", "https://placehold.co/600x400/333/FFF?text=Foto+3", "https://placehold.co/600x400/333/FFF?text=Foto+4"].
+            - **Specificaties (specs):** Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, brandstof, transmissie etc.
+            - **Analyse:** Bepaal op basis van alle informatie de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
+            Als je een veld niet kunt vinden, geef dan een logische standaardwaarde terug (bv. 0 voor prijs, een lege array [] voor lijsten).
         `;
 
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
@@ -63,8 +66,7 @@ module.exports = async (req, res) => {
 
         let analysisData;
         
-        // --- NIEUWE ROBUUSTE PARSING LOGICA ---
-        // Zoek het begin en einde van het JSON-object in de tekst van de AI
+        // --- ROBUUSTE PARSING LOGICA ---
         const jsonStartIndex = responseText.indexOf('{');
         const jsonEndIndex = responseText.lastIndexOf('}');
 
@@ -73,11 +75,9 @@ module.exports = async (req, res) => {
             throw new Error('De AI gaf een onverwacht antwoord dat geen JSON-data bevatte.');
         }
 
-        // Knip het JSON-gedeelte uit de tekst
         const jsonString = responseText.substring(jsonStartIndex, jsonEndIndex + 1);
 
         try {
-            // Probeer de uitgeknipte tekst te parsen
             analysisData = JSON.parse(jsonString);
             if (analysisData.error) {
                 console.error('AI rapporteerde een analysefout:', analysisData.error);
