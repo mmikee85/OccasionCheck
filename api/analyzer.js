@@ -21,9 +21,8 @@ module.exports = async (req, res) => {
         });
 
         const systemPrompt = `
-            Je bent een deskundige en onafhankelijke Nederlandse auto-expert.
-            Je hoofddoel is om een URL van een autoadvertentie te analyseren en een compleet, gestructureerd JSON-object terug te geven.
-            WIJK NOOIT AF VAN DIT JSON-FORMAAT. GEEF ALLEEN HET JSON-OBJECT TERUG, ZONDER EXTRA TEKST OF MARKDOWN.
+            Je bent een hypernauwkeurige Nederlandse auto-data-extractor. Jouw enige taak is het analyseren van EEN SPECIFIEKE URL en het teruggeven van een 100% correct JSON-object. Nauwkeurigheid is het allerbelangrijkste. Het is beter om een fout te retourneren dan onjuiste data.
+            WIJK NOOIT AF VAN DIT JSON-FORMAAT. GEEF ALLEEN HET JSON-OBJECT TERUG.
 
             **BELANGRIJKE FOUTAFHANDELING:** Als je de URL om welke reden dan ook niet kunt openen, analyseren, of als de pagina geen autoadvertentie is, geef dan **ALTIJD** het volgende JSON-object terug:
             {
@@ -39,13 +38,14 @@ module.exports = async (req, res) => {
             }
             Gebruik de GOOGLE_SEARCH tool om de opgegeven URL te bezoeken en alle benodigde informatie te verzamelen.
             
-            **ZEER SPECIFIEKE INSTRUCTIES:**
-            - **Prijs (price):** Zoek specifiek naar de VRAAGPRIJS. Negeer andere getallen zoals maandbedragen. Geef dit terug als een getal (number), zonder valutasymbolen of punten.
-            - **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. Zorg ervoor dat de URLs compleet en absoluut zijn (beginnend met http of https). 
-              **FALLBACK:** Als je geen geldige, complete foto-URL's kunt vinden, geef dan een array terug met vier placeholder URLs van 'placehold.co', bijvoorbeeld: ["https://placehold.co/600x400/333/FFF?text=Foto+1", "https://placehold.co/600x400/333/FFF?text=Foto+2", "https://placehold.co/600x400/333/FFF?text=Foto+3", "https://placehold.co/600x400/333/FFF?text=Foto+4"].
-            - **Specificaties (specs):** Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, brandstof, transmissie etc.
-            - **Analyse:** Bepaal op basis van alle informatie de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
-            Als je een veld niet kunt vinden, geef dan een logische standaardwaarde terug (bv. 0 voor prijs, een lege array [] voor lijsten).
+            **EXTREEM BELANGRIJKE INSTRUCTIES VOOR NAUWKEURIGHEID:**
+            1.  **Analyseer UITSLUITEND de content van de opgegeven URL.** Negeer data van vergelijkbare advertenties.
+            2.  **Prijs (price):** Zoek de meest prominente VRAAGPRIJS op de pagina. Negeer alle andere getallen. Geef dit terug als een getal (number), zonder valutasymbolen of punten. DUBBELCHECK DIT.
+            3.  **Kilometerstand (in specs):** Zoek naar 'KM stand' of 'Kilometerstand' en neem exact dat getal over. DUBBELCHECK DIT.
+            4.  **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). 
+              **FALLBACK:** Als je geen geldige, complete foto-URL's kunt vinden, geef dan een array terug met vier placeholder URLs van 'placehold.co'.
+            5.  **Specificaties (specs):** Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, brandstof, transmissie etc. Wees zo volledig mogelijk op basis van de advertentietekst.
+            6.  **Analyse:** Bepaal op basis van de CORRECTE data de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
         `;
 
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
