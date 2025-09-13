@@ -15,8 +15,14 @@ function createUnifiedPrompt(url) {
     3.  **VOER UIT:** Genereer het JSON-object volgens de gekozen modus en de onderstaande structuur.
 
     **BELANGRIJKSTE REGELS VOOR DATA-EXTRACTIE:**
-    - **Prijs (price):** De vraagprijs staat bijna altijd direct onder de hoofdtitel van de advertentie. Focus je zoektocht op dat gebied. Voor de hoogste nauwkeurigheid, zoek naar een HTML-element met een 'class' die 'price' of 'amount' bevat. Als dat niet lukt, zoek dan naar de meest prominente vraagprijs in de tekst (bv. '€ 34.890,-') dicht bij de titel. Prijzen in de zijbalk of onderaan de pagina zijn bijna altijd van andere advertenties en moet je negeren. Converteer de gevonden prijs naar een getal (bv. 34890).
-    - **Kilometerstand (specs):** Zoek naar een element met een 'class' die 'km' of 'mileage' bevat. Als dat niet lukt, zoek dan naar de tekst 'KM stand' en neem het bijbehorende getal.
+    - **Prijs (price):** Dit is de meest kritische waarde. Volg dit stappenplan om de VRAAGPRIJS te vinden:
+        1.  **STAP 1 (Analyseer HTML Class):** Scan de HTML voor elementen (zoals <span> of <div>) met een 'class' attribuut dat "price", "prijs", of "amount" bevat. Dit is de meest betrouwbare bron.
+        2.  **STAP 2 (Zoek naar Labels):** Als stap 1 niets oplevert, zoek dan naar de tekst "Prijs" of "Vraagprijs" en neem het getal dat er direct naast of onder staat.
+        3.  **STAP 3 (Positie-analyse):** Als stap 1 en 2 mislukken, zoek dan naar het meest prominente getal (groot lettertype, opvallende kleur) dat direct onder de hoofdtitel (de \`<h1>\` tag) staat.
+        4.  **UITSLUITINGEN:** Negeer ALTIJD getallen die duidelijk bij een financiering, maandbedrag, of 'vergelijkbare advertenties' horen.
+        5.  **FORMATTERING:** Converteer de gevonden prijs naar een getal (bv. 34890).
+        
+    - **Kilometerstand (specs):** Zoek naar een element met een 'class' die 'km', 'mileage' of 'kilometerstand' bevat. Als dat niet lukt, zoek dan naar de tekst 'KM stand' en neem het bijbehorende getal.
     - **Titel:** De titel staat bijna altijd in de \`<h1>\` tag.
     
     **GEEF NU EEN GELDIG JSON-OBJECT TERUG MET DEZE STRUCTURUR:**
