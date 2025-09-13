@@ -4,11 +4,86 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // Initialiseer de Gemini client met de API sleutel die we later in Vercel instellen
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+// Functie om de JSON-structuur te definiëren die we van de AI verwachten
+function getResponseSchema() {
+    return {
+        type: "OBJECT",
+        properties: {
+            isSpecificAdAnalysis: {
+                type: "BOOLEAN",
+                description: "True als de analyse gebaseerd is op de specifieke advertentie, False als het een algemene fallback analyse is."
+            },
+            title: {
+                type: "STRING",
+                description: "De titel van de auto (bijv. 'BMW X3 xDrive20i High Executive M-Sport')."
+            },
+            photos: {
+                type: "ARRAY",
+                items: { type: "STRING" },
+                description: "Een lijst met 4 URLs van de afbeeldingen. Als specifieke fotos niet lukken, representatieve afbeeldingen."
+            },
+            marketAnalysis: {
+                type: "STRING",
+                description: "Evaluatie van de vraagprijs (bijv. 'concurrerend', 'hoog', 'laag') en een korte uitleg."
+            },
+            price: {
+                type: "NUMBER",
+                description: "De exacte vraagprijs als getal. Als dit niet kan, een realistische schatting."
+            },
+            specs: {
+                type: "OBJECT",
+                description: "Een object met de belangrijkste specificaties.",
+                properties: {
+                    "Merk": { type: "STRING" },
+                    "Model": { type: "STRING" },
+                    "Bouwjaar": { type: "STRING" },
+                    "Kilometerstand": { type: "STRING" },
+                    "Brandstof": { type: "STRING" },
+                    "Transmissie": { type: "STRING" },
+                }
+            },
+            pluspunten: { type: "ARRAY", items: { type: "STRING" }, description: "Lijst van 3 sterkste algemene kanten van dit model." },
+            minpunten: { type: "ARRAY", items: { type: "STRING" }, description: "Lijst van 3 meest voorkomende algemene problemen voor dit model." },
+            onderhandelingsadvies: { type: "STRING", description: "Een concreet koop-onderhandelingsadvies." },
+            eindconclusie: { type: "STRING", description: "De beredenering voor het gegeven cijfer." },
+            score: { type: "NUMBER", description: "Een cijfer van 1.0 tot 10.0 voor deze specifieke deal of het model algemeen." },
+        }
+    };
+}
+
+// Functie om de instructies voor de AI te genereren
+function createUnifiedPrompt(url) {
+    return `Je bent 'OccasionCheck AI', een expert in het analyseren van auto-advertenties.
+
+    **URL van de te analyseren advertentie:** ${url}
+
+    **PROTOCOL (VOLG DEZE STAPPEN PRECIES):**
+
+    1.  **ONDERZOEK DE URL**: Gebruik je 'google_search_retrieval' tool om de webpagina op de URL te bezoeken en te lezen. Bepaal of de inhoud een valide, leesbare auto-advertentie is.
+    
+    2.  **KIES JE MODUS**:
+        * **Als de pagina een valide, leesbare advertentie bevat**: Voer een **SPECIFIEKE ANALYSE** uit. Zet 'isSpecificAdAnalysis' op 'true'. Baseer je antwoorden op de data die je **direct van de pagina** haalt.
+        * **Als de pagina NIET bruikbaar is (bv. een fout, blokkade, of geen advertentie)**: Voer een **ALGEMENE FALLBACK ANALYSE** uit. Zet 'isSpecificAdAnalysis' op 'false'. Baseer je antwoorden op je algemene kennis over het automodel dat waarschijnlijk in de URL wordt genoemd.
+
+    **INSTRUCTIES VOOR SPECIFIEKE ANALYSE (isSpecificAdAnalysis: true)**
+    * **price**: Vind de **exacte vraagprijs** op de pagina en converteer dit naar een getal.
+    * **specs**: Haal waarden (vooral kilometerstand) **direct van de pagina**.
+    * **Analyse**: Baseer alle tekstuele analyses (pluspunten, minpunten, advies, etc.) op de specifieke details van de advertentie.
+    * **score**: Beoordeel de **specifieke deal** uit de advertentie.
+
+    **INSTRUCTIES VOOR ALGEMENE FALLBACK ANALYSE (isSpecificAdAnalysis: false)**
+    * **price**: Maak een realistische **schatting** voor dit model en bouwjaar.
+    * **specs**: Gebruik **algemene** data voor dit model.
+    * **Analyse**: Schrijf **algemene** teksten over het model.
+    * **score**: Beoordeel het **model in het algemeen** als occasion.
+
+    ---
+    **VOER NU DE GEKOZEN ANALYSE UIT EN VUL ALLE VELDEN IN VOLGENS HET JSON SCHEMA.**`;
+}
+
 // Dit is de hoofd export, de functie die Vercel zal aanroepen
 module.exports = async (req, res) => {
-    // Dit logt of de API sleutel succesvol is ingeladen door de server.
     console.log("GEMINI_API_KEY gevonden:", !!process.env.GEMINI_API_KEY);
-
     const targetUrl = req.query.url;
 
     if (!targetUrl) {
@@ -17,80 +92,29 @@ module.exports = async (req, res) => {
 
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash-latest"
+            model: "gemini-1.5-flash-latest",
         });
 
-        const systemPrompt = `
-            Je bent een hypernauwkeurige Nederlandse auto-data-extractor. Jouw enige taak is het analyseren van EEN SPECIFIEKE URL en het teruggeven van een 100% correct JSON-object. Nauwkeurigheid is het allerbelangrijkste.
-            WIJK NOOIT AF VAN DIT JSON-FORMAAT. GEEF ALLEEN HET JSON-OBJECT TERUG.
+        const prompt = createUnifiedPrompt(targetUrl);
 
-            **BELANGRIJKE FOUTAFHANDELING:** Als je de URL om welke reden dan ook niet kunt openen, analyseren, of als de pagina geen autoadvertentie is, geef dan **ALTIJD** het volgende JSON-object terug:
-            {
-              "error": "De opgegeven URL kon niet worden geanalyseerd. Controleer of de link correct is en de pagina openbaar toegankelijk is."
+        const result = await model.generateContent({
+            contents: [{ parts: [{ text: prompt }] }],
+            tools: [{ "google_search_retrieval": {} }],
+            generationConfig: {
+                responseMimeType: "application/json",
+                responseSchema: getResponseSchema()
             }
-            
-            Als de analyse wel lukt, moet het JSON-object de volgende structuur hebben:
-            {
-              "title": "string", "price": number, "photos": ["url1", "url2", "url3", "url4"],
-              "specs": { "key1": "value1", "key2": "value2" }, "pluspunten": ["string"],
-              "minpunten": ["string"], "onderhandelingsadvies": ["string"],
-              "eindconclusie": "string", "score": number, "marketAnalysis": "string"
-            }
-            
-            **CRUCIALE REGELS VOOR NAUWKEURIGHEID:**
-            1.  **BRON:** Analyseer **UITSLUITEND** de data van de hoofdadvertentie op de opgegeven URL. Negeer alle data uit secties zoals 'vergelijkbare advertenties'.
-            2.  **PRIJS (price):** DIT IS DE ALLERBELANGRIJKSTE REGEL. De correcte prijs is de **VRAAGPRIJS** van de auto. Deze staat bijna altijd groot en prominent bovenaan de advertentie, dicht bij de titel. Zoek naar een getal in een formaat als '€ 34.890,-' of '34.890'. Je MOET dit herkennen en converteren naar een puur getal (bv. 34890). **NEGEER ALLE ANDERE GETALLEN OP DE PAGINA**, zoals telefoonnummers, motorinhoud, of prijzen in andere, kleinere advertenties. Jouw enige focus is de hoofdvraagprijs van de auto die wordt geadverteerd.
-            3.  **VERIFICATIE:** Voordat je antwoordt, **VERIFIEER** dat de prijs die je hebt gevonden, echt de vraagprijs is en niet een ander getal.
-            4.  **MARKTANALYSE (marketAnalysis):** Vergelijk de geverifieerde prijs met de marktwaarde en schrijf een korte conclusie in het Nederlands.
-            5.  **FOTO'S (photos):** Zoek de EERSTE VIER hoofdafbeeldingen. De URLs MOETEN compleet zijn (beginnend met http of https). FALLBACK: Gebruik 'placehold.co' URLs als je geen echte foto's kunt vinden.
-        `;
-
-        const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
-
-        const chat = model.startChat({
-            systemInstruction: {
-                parts: [{
-                    text: systemPrompt
-                }],
-            },
-            tools: [{
-                "google_search_retrieval": {}
-            }]
         });
-
-        const result = await chat.sendMessage(userPrompt);
-        const responseText = result.response.text();
-
-        let analysisData;
         
-        // --- ROBUUSTE PARSING LOGICA ---
-        const jsonStartIndex = responseText.indexOf('{');
-        const jsonEndIndex = responseText.lastIndexOf('}');
-
-        if (jsonStartIndex === -1 || jsonEndIndex === -1) {
-            console.error('Geen geldig JSON-object gevonden in het AI-antwoord:', responseText);
-            throw new Error('De AI gaf een onverwacht antwoord dat geen JSON-data bevatte.');
-        }
-
-        const jsonString = responseText.substring(jsonStartIndex, jsonEndIndex + 1);
-
-        try {
-            analysisData = JSON.parse(jsonString);
-            if (analysisData.error) {
-                console.error('AI rapporteerde een analysefout:', analysisData.error);
-                throw new Error(analysisData.error);
-            }
-        } catch (parseError) {
-            console.error('Fout bij het parsen van de uitgeknipte JSON:', parseError);
-            console.error('Ontvangen (corrupte JSON) tekst van Gemini:', jsonString);
-            throw new Error('De AI gaf een onverwacht antwoord en de data kon niet worden gelezen.');
-        }
+        const responseText = result.response.text();
+        const analysisData = JSON.parse(responseText);
 
         res.status(200).json(analysisData);
+
     } catch (error) {
         console.error('Fout tijdens de volledige analyse:', error);
         res.status(500).json({
-            error: error.message
+            error: error.message || "Er is een onbekende fout opgetreden bij de AI-analyse."
         });
     }
 };
