@@ -15,7 +15,7 @@ function createUnifiedPrompt(url) {
     3.  **VOER UIT:** Genereer het JSON-object volgens de gekozen modus en de onderstaande structuur.
 
     **BELANGRIJKSTE REGELS VOOR DATA-EXTRACTIE:**
-    - **Prijs (price):** Voor de hoogste nauwkeurigheid, zoek naar een HTML-element met een 'class' die 'price' of 'amount' bevat. Als dat niet lukt, zoek dan naar de meest prominente vraagprijs in de tekst (bv. '€ 34.890,-') dicht bij de titel. Converteer naar een getal (bv. 34890).
+    - **Prijs (price):** De vraagprijs staat bijna altijd direct onder de hoofdtitel van de advertentie. Focus je zoektocht op dat gebied. Voor de hoogste nauwkeurigheid, zoek naar een HTML-element met een 'class' die 'price' of 'amount' bevat. Als dat niet lukt, zoek dan naar de meest prominente vraagprijs in de tekst (bv. '€ 34.890,-') dicht bij de titel. Prijzen in de zijbalk of onderaan de pagina zijn bijna altijd van andere advertenties en moet je negeren. Converteer de gevonden prijs naar een getal (bv. 34890).
     - **Kilometerstand (specs):** Zoek naar een element met een 'class' die 'km' of 'mileage' bevat. Als dat niet lukt, zoek dan naar de tekst 'KM stand' en neem het bijbehorende getal.
     - **Titel:** De titel staat bijna altijd in de \`<h1>\` tag.
     
