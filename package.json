@@ -1,15 +1,14 @@
-    {
-      "name": "occasion-checker",
-      "version": "1.0.0",
-      "description": "Een AI-aangedreven occasion checker",
-      "main": "index.js",
-      "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
-      },
-      "keywords": [],
-      "author": "",
-      "license": "ISC",
-      "dependencies": {
-        "@google/generative-ai": "^0.7.1"
-      }
-    }
+{
+  "name": "occasion-checker-backend",
+  "version": "1.0.0",
+  "description": "API for analyzing car listings",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.11.3"
+  }
+}
