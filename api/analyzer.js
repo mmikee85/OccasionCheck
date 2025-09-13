@@ -6,6 +6,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // Dit is de hoofd export, de functie die Vercel zal aanroepen
 module.exports = async (req, res) => {
+    // --- NIEUW: HET CONTROLELAMPJE ---
+    // Deze regel logt of de API sleutel succesvol is ingeladen door de server.
+    console.log("Controlelampje GEMINI_API_KEY gevonden:", !!process.env.GEMINI_API_KEY);
+
     const targetUrl = req.query.url;
 
     if (!targetUrl) {
@@ -42,7 +46,6 @@ module.exports = async (req, res) => {
         
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
 
-        // We verpakken de systemPrompt nu in de juiste objectstructuur die de API verwacht.
         const chat = model.startChat({
             systemInstruction: {
                 parts: [{ text: systemPrompt }],
@@ -53,37 +56,28 @@ module.exports = async (req, res) => {
         const result = await chat.sendMessage(userPrompt);
         const responseText = result.response.text();
         
-        // --- Meest robuuste JSON verwerking ---
         let analysisData;
         const cleanedString = responseText.replace(/^```json\s*|```$/g, '').trim();
 
-        // Controleer eerst of de response wel op JSON lijkt.
         if (!cleanedString.startsWith('{')) {
             console.error('Gemini gaf geen JSON terug, maar een tekstbericht:', cleanedString);
             throw new Error(`Analyse mislukt. De AI gaf het volgende bericht: "${cleanedString}"`);
         }
 
         try {
-            // Nu we weten dat het waarschijnlijk JSON is, proberen we het te parsen.
             analysisData = JSON.parse(cleanedString);
-
-            // NIEUWE CONTROLE: Check of de AI zelf een fout heeft gerapporteerd.
             if (analysisData.error) {
                 console.error('AI rapporteerde een analysefout:', analysisData.error);
                 throw new Error(analysisData.error);
             }
-
         } catch (parseError) {
-            // Als dit alsnog mislukt, is de JSON corrupt.
             console.error('Fout bij het parsen van Gemini response:', parseError);
             console.error('Ontvangen (corrupte JSON) tekst van Gemini:', cleanedString);
             throw new Error('De AI gaf een onverwacht antwoord en de data kon niet worden gelezen.'); 
         }
         
         res.status(200).json(analysisData);
-
     } catch (error) {
-        // Deze 'catch' vangt nu alle fouten.
         console.error('Fout tijdens de volledige analyse:', error);
         res.status(500).json({ error: error.message });
     }
