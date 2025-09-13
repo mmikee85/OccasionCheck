@@ -18,8 +18,14 @@ module.exports = async (req, res) => {
         const systemPrompt = `
             Je bent een deskundige en onafhankelijke Nederlandse auto-expert.
             Je hoofddoel is om een URL van een autoadvertentie te analyseren en een compleet, gestructureerd JSON-object terug te geven.
-            WIJK NOOIT AF VAN DIT JSON-FORMAAT. ZELFS NIET BIJ EEN FOUT.
-            Het JSON-object moet de volgende structuur hebben:
+            WIJK NOOIT AF VAN DIT JSON-FORMAAT.
+
+            **BELANGRIJKE FOUTAFHANDELING:** Als je de URL om welke reden dan ook niet kunt openen, analyseren, of als de pagina geen autoadvertentie is, geef dan **ALTIJD** het volgende JSON-object terug:
+            {
+              "error": "De opgegeven URL kon niet worden geanalyseerd. Controleer of de link correct is en de pagina openbaar toegankelijk is."
+            }
+            
+            Als de analyse wel lukt, moet het JSON-object de volgende structuur hebben:
             {
               "title": "string", "price": number, "photos": ["url1", "url2", "url3", "url4"],
               "specs": { "key1": "value1", "key2": "value2" }, "pluspunten": ["string"],
@@ -47,13 +53,12 @@ module.exports = async (req, res) => {
         const result = await chat.sendMessage(userPrompt);
         const responseText = result.response.text();
         
-        // --- NOG slimmere, robuustere JSON verwerking ---
+        // --- Meest robuuste JSON verwerking ---
         let analysisData;
         const cleanedString = responseText.replace(/^```json\s*|```$/g, '').trim();
 
         // Controleer eerst of de response wel op JSON lijkt.
         if (!cleanedString.startsWith('{')) {
-            // Zo niet, dan is de hele response een foutmelding van de AI.
             console.error('Gemini gaf geen JSON terug, maar een tekstbericht:', cleanedString);
             throw new Error(`Analyse mislukt. De AI gaf het volgende bericht: "${cleanedString}"`);
         }
@@ -61,6 +66,13 @@ module.exports = async (req, res) => {
         try {
             // Nu we weten dat het waarschijnlijk JSON is, proberen we het te parsen.
             analysisData = JSON.parse(cleanedString);
+
+            // NIEUWE CONTROLE: Check of de AI zelf een fout heeft gerapporteerd.
+            if (analysisData.error) {
+                console.error('AI rapporteerde een analysefout:', analysisData.error);
+                throw new Error(analysisData.error);
+            }
+
         } catch (parseError) {
             // Als dit alsnog mislukt, is de JSON corrupt.
             console.error('Fout bij het parsen van Gemini response:', parseError);
@@ -71,9 +83,8 @@ module.exports = async (req, res) => {
         res.status(200).json(analysisData);
 
     } catch (error) {
-        // Deze 'catch' vangt nu alle fouten: van de API zelf, of onze eigen parse-fout.
+        // Deze 'catch' vangt nu alle fouten.
         console.error('Fout tijdens de volledige analyse:', error);
-        // We sturen de specifieke error.message door, zodat de gebruiker een duidelijkere melding krijgt.
         res.status(500).json({ error: error.message });
     }
 };
