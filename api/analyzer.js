@@ -44,14 +44,28 @@ module.exports = async (req, res) => {
         const result = await chat.sendMessage(userPrompt);
         const responseText = result.response.text();
         
-        const cleanedJsonString = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-        const analysisData = JSON.parse(cleanedJsonString);
+        // --- Verbeterde, robuustere JSON verwerking ---
+        let analysisData;
+        try {
+            // Verwijder de markdown-wrapper (` ```json ` en ` ``` `) die de AI soms toevoegt
+            const cleanedJsonString = responseText.replace(/^```json\s*|```$/g, '').trim();
+            analysisData = JSON.parse(cleanedJsonString);
+        } catch (parseError) {
+            // Als het parsen mislukt, is de response van Gemini geen valide JSON.
+            // Dit is cruciale informatie voor het oplossen van problemen.
+            console.error('Fout bij het parsen van Gemini response:', parseError);
+            console.error('Ontvangen (ongeldige) tekst van Gemini:', responseText);
+            // Stuur een specifieke, nuttige foutmelding terug naar de gebruiker.
+            throw new Error('De AI gaf een onverwacht antwoord en de data kon niet worden gelezen.'); 
+        }
         
         res.status(200).json(analysisData);
 
     } catch (error) {
-        console.error('Fout tijdens de Gemini analyse:', error);
-        res.status(500).json({ error: 'Er is iets misgegaan bij het analyseren van de link.', details: error.message });
+        // Deze 'catch' vangt nu alle fouten: van de API zelf, of onze eigen parse-fout.
+        console.error('Fout tijdens de volledige analyse:', error);
+        // We sturen de specifieke error.message door, zodat de gebruiker een duidelijkere melding krijgt.
+        res.status(500).json({ error: error.message });
     }
 };
 
