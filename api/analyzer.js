@@ -1,5 +1,5 @@
 // Importeer de officiële Google AI package
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI } = require('@google-generative-ai');
 
 // Initialiseer de Gemini client met de API sleutel die we later in Vercel instellen
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -38,15 +38,13 @@ module.exports = async (req, res) => {
             }
             Gebruik de GOOGLE_SEARCH tool om de opgegeven URL te bezoeken en alle benodigde informatie te verzamelen.
             
-            **EXTREEM BELANGRIJKE INSTRUCTIES VOOR NAUWKEURIGHEID:**
-            1.  **Analyseer UITSLUITEND de content van de opgegeven URL.** Negeer data van vergelijkbare advertenties.
-            2.  **Prijs (price):** Dit is de belangrijkste waarde. Zoek naar de prijs die expliciet wordt aangeduid als 'Vraagprijs' of een vergelijkbare term. De prijs is vaak geformatteerd als '€ 34.890,-'. Je MOET dit formaat herkennen. Verwijder het euroteken, de punten, komma's en streepjes en geef alleen het getal (number) terug, bijvoorbeeld 34890. Wees extreem voorzichtig en negeer leasebedragen of andere getallen die niet de totale vraagprijs zijn. DUBBELCHECK DEZE WAARDE MEERDERE KEREN.
-            3.  **Marktanalyse (marketAnalysis):** NADAT je de correcte 'price' hebt gevonden, vergelijk je deze prijs met de geschatte marktwaarde voor vergelijkbare voertuigen (merk, model, bouwjaar, kilometerstand). Geef een korte, duidelijke conclusie in één zin in het Nederlands. Bijvoorbeeld: "Deze vraagprijs is marktconform." of "Deze vraagprijs is circa €1.500 onder de geschatte marktwaarde, wat een scherpe deal is."
-            4.  **Kilometerstand (in specs):** Zoek naar 'KM stand' of 'Kilometerstand' en neem exact dat getal over. DUBBELCHECK DIT.
-            5.  **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). 
-              **FALLBACK:** Als je geen geldige, complete foto-URL's kunt vinden, geef dan een array terug met vier placeholder URLs van 'placehold.co'.
-            6.  **Specificaties (specs):** Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, brandstof, transmissie etc. Wees zo volledig mogelijk op basis van de advertentietekst.
-            7.  **Analyse:** Bepaal op basis van de CORRECTE data de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
+            **JE DENKPROCES IN STAPPEN (VOLG DIT VERPLICHT):**
+            1.  **STAP 1: IDENTIFICATIE.** Bezoek de URL en identificeer het hoofdvoertuig van de advertentie. Noteer de titel, de vraagprijs en de kilometerstand.
+            2.  **STAP 2: VERIFICATIE (EXTREEM BELANGRIJK).** Controleer nu je gevonden data. Komt de prijs en kilometerstand daadwerkelijk uit het hoofdonderdeel van de advertentie, of heb je het per ongeluk uit een 'vergelijkbare advertenties' sectie gehaald? Pas je data aan als dit nodig is. De correcte prijs staat meestal direct onder de titel en is prominent aanwezig. Het is vaak geformatteerd als '€ 34.890,-'. Herken dit, en converteer het naar een getal (bv. 34890).
+            3.  **STAP 3: CONCLUSIE.** NADAT je de correcte data hebt geverifieerd in stap 2, vul je het JSON-object in. Vergelijk de geverifieerde prijs met de marktwaarde en schrijf je conclusie in 'marketAnalysis'.
+            
+            **AANVULLENDE REGELS:**
+            - **Analyseer UITSLUITEND de content van de opgegeven URL.** - **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). FALLBACK: Gebruik 'placehold.co' URLs als je geen echte foto's kunt vinden.
         `;
 
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
