@@ -8,26 +8,16 @@ function createUnifiedPrompt(url) {
     **URL:** ${url}
 
     **PROTOCOL:**
-    1.  **ONDERZOEK URL:** Bezoek de URL met je 'google_search_retrieval' tool. Analyseer de volledige HTML-broncode. Is het een leesbare auto-advertentie?
+    1.  **ONDERZOEK URL:** Bezoek de URL met je 'google_search_retrieval' tool. Analyseer de HTML-broncode. Is het een leesbare auto-advertentie?
     2.  **KIES MODUS:**
         * **SPECIFIEKE ANALYSE:** Als de pagina leesbaar is. Zet 'isSpecificAdAnalysis' op 'true'. Haal data direct van de pagina.
         * **ALGEMENE ANALYSE:** Als de pagina niet bruikbaar is (fout/blokkade). Zet 'isSpecificAdAnalysis' op 'false'. Gebruik je algemene kennis over het model uit de URL.
     3.  **VOER UIT:** Genereer het JSON-object volgens de gekozen modus en de onderstaande structuur.
 
-    **TECHNISCHE HINTS VOOR HTML-ANALYSE (VOLG DEZE PRIORITEITEN):**
-    Jouw primaire taak is om de HTML-structuur te analyseren.
-    
-    - **Prijs (price):**
-        1.  **PRIORITEIT 1 (Class-based):** Zoek EERST naar HTML-elementen (<span>, <div>) met een 'class' attribuut dat 'Price', 'price', 'amount', of 'prijs' bevat. Dit is de meest betrouwbare bron.
-        2.  **PRIORITEIT 2 (Text-based):** ALS methode 1 mislukt, zoek dan naar de meest prominente vraagprijs in de tekst, vaak in het formaat '€ 34.890,-' en dicht bij de titel.
-        3.  Converteer de gevonden prijs naar een getal (bv. 34890).
-
-    - **Kilometerstand (specs):**
-        1.  **PRIORITEIT 1 (Class-based):** Zoek EERST naar elementen met een 'class' die 'km', 'mileage', 'kilometerstand', of 'kenmerk-kilometerstand' bevat.
-        2.  **PRIORITEIT 2 (Text-based):** ALS methode 1 mislukt, zoek dan naar de tekst 'KM stand' of 'Kilometerstand' en neem het getal dat er direct naast staat.
-
+    **BELANGRIJKSTE REGELS VOOR DATA-EXTRACTIE:**
+    - **Prijs (price):** Voor de hoogste nauwkeurigheid, zoek naar een HTML-element met een 'class' die 'price' of 'amount' bevat. Als dat niet lukt, zoek dan naar de meest prominente vraagprijs in de tekst (bv. '€ 34.890,-') dicht bij de titel. Converteer naar een getal (bv. 34890).
+    - **Kilometerstand (specs):** Zoek naar een element met een 'class' die 'km' of 'mileage' bevat. Als dat niet lukt, zoek dan naar de tekst 'KM stand' en neem het bijbehorende getal.
     - **Titel:** De titel staat bijna altijd in de \`<h1>\` tag.
-    - **Specificaties:** Zoek naar een \`<ul>\` of \`<table>\` met 'specs', 'kenmerken', of 'specifications' in de class.
     
     **GEEF NU EEN GELDIG JSON-OBJECT TERUG MET DEZE STRUCTURUR:**
     {
