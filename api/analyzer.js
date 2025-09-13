@@ -1,5 +1,5 @@
 // Importeer de officiële Google AI package
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI } = require('@google-generative-ai');
 
 // --- Functie om de instructies voor de AI te genereren ---
 function createUnifiedPrompt(url) {
@@ -14,14 +14,22 @@ function createUnifiedPrompt(url) {
         * **ALGEMENE ANALYSE:** Als de pagina niet bruikbaar is (fout/blokkade). Zet 'isSpecificAdAnalysis' op 'false'. Gebruik je algemene kennis over het model uit de URL.
     3.  **VOER UIT:** Genereer het JSON-object volgens de gekozen modus en de onderstaande structuur.
 
-    **TECHNISCHE HINTS VOOR HTML-ANALYSE (ZEER BELANGRIJK):**
+    **TECHNISCHE HINTS VOOR HTML-ANALYSE (VOLG DEZE PRIORITEITEN):**
     Jouw primaire taak is om de HTML-structuur te analyseren.
-    - **Prijs (price):** Zoek naar HTML-elementen (zoals <span> of <div>) waarvan de 'class' attribuut woorden bevat zoals 'Price', 'price', 'amount', of 'prijs'. De waarde binnen dit element is de meest betrouwbare prijs. Negeer alle andere getallen op de pagina. Converteer naar een getal (bv. 34890).
-    - **Kilometerstand (specs):** Zoek naar elementen met een 'class' die 'km', 'mileage', 'kilometerstand', of 'kenmerk-kilometerstand' bevat.
-    - **Titel:** De titel staat bijna altijd in de \`<h1>\` tag.
-    - **Specificaties:** Zoek naar een \`<ul>\` of \`<table>\` met specificaties. De class hiervan bevat vaak 'specs', 'kenmerken', of 'specifications'.
     
-    **GEEF NU EEN GELDIG JSON-OBJECT TERUG MET DEZE STRUCTUUR:**
+    - **Prijs (price):**
+        1.  **PRIORITEIT 1 (Class-based):** Zoek EERST naar HTML-elementen (<span>, <div>) met een 'class' attribuut dat 'Price', 'price', 'amount', of 'prijs' bevat. Dit is de meest betrouwbare bron.
+        2.  **PRIORITEIT 2 (Text-based):** ALS methode 1 mislukt, zoek dan naar de meest prominente vraagprijs in de tekst, vaak in het formaat '€ 34.890,-' en dicht bij de titel.
+        3.  Converteer de gevonden prijs naar een getal (bv. 34890).
+
+    - **Kilometerstand (specs):**
+        1.  **PRIORITEIT 1 (Class-based):** Zoek EERST naar elementen met een 'class' die 'km', 'mileage', 'kilometerstand', of 'kenmerk-kilometerstand' bevat.
+        2.  **PRIORITEIT 2 (Text-based):** ALS methode 1 mislukt, zoek dan naar de tekst 'KM stand' of 'Kilometerstand' en neem het getal dat er direct naast staat.
+
+    - **Titel:** De titel staat bijna altijd in de \`<h1>\` tag.
+    - **Specificaties:** Zoek naar een \`<ul>\` of \`<table>\` met 'specs', 'kenmerken', of 'specifications' in de class.
+    
+    **GEEF NU EEN GELDIG JSON-OBJECT TERUG MET DEZE STRUCTURUR:**
     {
       "isSpecificAdAnalysis": true,
       "title": "...",
