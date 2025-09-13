@@ -40,7 +40,7 @@ module.exports = async (req, res) => {
             
             **EXTREEM BELANGRIJKE INSTRUCTIES VOOR NAUWKEURIGHEID:**
             1.  **Analyseer UITSLUITEND de content van de opgegeven URL.** Negeer data van vergelijkbare advertenties.
-            2.  **Prijs (price):** Zoek de meest prominente VRAAGPRIJS op de pagina. Negeer alle andere getallen. Geef dit terug als een getal (number), zonder valutasymbolen of punten. DUBBELCHECK DIT.
+            2.  **Prijs (price):** Dit is de belangrijkste waarde. Zoek naar de prijs die expliciet wordt aangeduid als 'Vraagprijs' of een vergelijkbare term. De prijs is vaak geformatteerd als '€ 34.890,-'. Je MOET dit formaat herkennen. Verwijder het euroteken, de punten, komma's en streepjes en geef alleen het getal (number) terug, bijvoorbeeld 34890. Wees extreem voorzichtig en negeer leasebedragen of andere getallen die niet de totale vraagprijs zijn. DUBBELCHECK DEZE WAARDE MEERDERE KEREN.
             3.  **Kilometerstand (in specs):** Zoek naar 'KM stand' of 'Kilometerstand' en neem exact dat getal over. DUBBELCHECK DIT.
             4.  **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). 
               **FALLBACK:** Als je geen geldige, complete foto-URL's kunt vinden, geef dan een array terug met vier placeholder URLs van 'placehold.co'.
