@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
         const systemPrompt = `
             Je bent een deskundige en onafhankelijke Nederlandse auto-expert.
             Je hoofddoel is om een URL van een autoadvertentie te analyseren en een compleet, gestructureerd JSON-object terug te geven.
-            WIJK NOOIT AF VAN DIT JSON-FORMAAT.
+            WIJK NOOIT AF VAN DIT JSON-FORMAAT. GEEF ALLEEN HET JSON-OBJECT TERUG, ZONDER EXTRA TEKST OF MARKDOWN.
 
             **BELANGRIJKE FOUTAFHANDELING:** Als je de URL om welke reden dan ook niet kunt openen, analyseren, of als de pagina geen autoadvertentie is, geef dan **ALTIJD** het volgende JSON-object terug:
             {
@@ -62,22 +62,30 @@ module.exports = async (req, res) => {
         const responseText = result.response.text();
 
         let analysisData;
-        const cleanedString = responseText.replace(/^```json\s*|```$/g, '').trim();
+        
+        // --- NIEUWE ROBUUSTE PARSING LOGICA ---
+        // Zoek het begin en einde van het JSON-object in de tekst van de AI
+        const jsonStartIndex = responseText.indexOf('{');
+        const jsonEndIndex = responseText.lastIndexOf('}');
 
-        if (!cleanedString.startsWith('{')) {
-            console.error('Gemini gaf geen JSON terug, maar een tekstbericht:', cleanedString);
-            throw new Error(`Analyse mislukt. De AI gaf het volgende bericht: "${cleanedString}"`);
+        if (jsonStartIndex === -1 || jsonEndIndex === -1) {
+            console.error('Geen geldig JSON-object gevonden in het AI-antwoord:', responseText);
+            throw new Error('De AI gaf een onverwacht antwoord dat geen JSON-data bevatte.');
         }
 
+        // Knip het JSON-gedeelte uit de tekst
+        const jsonString = responseText.substring(jsonStartIndex, jsonEndIndex + 1);
+
         try {
-            analysisData = JSON.parse(cleanedString);
+            // Probeer de uitgeknipte tekst te parsen
+            analysisData = JSON.parse(jsonString);
             if (analysisData.error) {
                 console.error('AI rapporteerde een analysefout:', analysisData.error);
                 throw new Error(analysisData.error);
             }
         } catch (parseError) {
-            console.error('Fout bij het parsen van Gemini response:', parseError);
-            console.error('Ontvangen (corrupte JSON) tekst van Gemini:', cleanedString);
+            console.error('Fout bij het parsen van de uitgeknipte JSON:', parseError);
+            console.error('Ontvangen (corrupte JSON) tekst van Gemini:', jsonString);
             throw new Error('De AI gaf een onverwacht antwoord en de data kon niet worden gelezen.');
         }
 
