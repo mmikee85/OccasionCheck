@@ -41,26 +41,30 @@ module.exports = async (req, res) => {
             systemInstruction: {
                 parts: [{ text: systemPrompt }],
             },
-            // *** HIER IS DE CORRECTIE ***
-            // De naam van de tool is bijgewerkt van 'google_search' naar 'google_search_retrieval'.
             tools: [{ "google_search_retrieval": {} }]
         });
         
         const result = await chat.sendMessage(userPrompt);
         const responseText = result.response.text();
         
-        // --- Verbeterde, robuustere JSON verwerking ---
+        // --- NOG slimmere, robuustere JSON verwerking ---
         let analysisData;
+        const cleanedString = responseText.replace(/^```json\s*|```$/g, '').trim();
+
+        // Controleer eerst of de response wel op JSON lijkt.
+        if (!cleanedString.startsWith('{')) {
+            // Zo niet, dan is de hele response een foutmelding van de AI.
+            console.error('Gemini gaf geen JSON terug, maar een tekstbericht:', cleanedString);
+            throw new Error(`Analyse mislukt. De AI gaf het volgende bericht: "${cleanedString}"`);
+        }
+
         try {
-            // Verwijder de markdown-wrapper (` ```json ` en ` ``` `) die de AI soms toevoegt
-            const cleanedJsonString = responseText.replace(/^```json\s*|```$/g, '').trim();
-            analysisData = JSON.parse(cleanedJsonString);
+            // Nu we weten dat het waarschijnlijk JSON is, proberen we het te parsen.
+            analysisData = JSON.parse(cleanedString);
         } catch (parseError) {
-            // Als het parsen mislukt, is de response van Gemini geen valide JSON.
-            // Dit is cruciale informatie voor het oplossen van problemen.
+            // Als dit alsnog mislukt, is de JSON corrupt.
             console.error('Fout bij het parsen van Gemini response:', parseError);
-            console.error('Ontvangen (ongeldige) tekst van Gemini:', responseText);
-            // Stuur een specifieke, nuttige foutmelding terug naar de gebruiker.
+            console.error('Ontvangen (corrupte JSON) tekst van Gemini:', cleanedString);
             throw new Error('De AI gaf een onverwacht antwoord en de data kon niet worden gelezen.'); 
         }
         
