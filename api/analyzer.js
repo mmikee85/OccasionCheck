@@ -36,8 +36,12 @@ module.exports = async (req, res) => {
         
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
 
+        // *** HIER IS DE CORRECTIE ***
+        // We verpakken de systemPrompt nu in de juiste objectstructuur die de API verwacht.
         const chat = model.startChat({
-            systemInstruction: systemPrompt,
+            systemInstruction: {
+                parts: [{ text: systemPrompt }],
+            },
             tools: [{ "google_search": {} }]
         });
         
