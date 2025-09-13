@@ -34,18 +34,19 @@ module.exports = async (req, res) => {
               "title": "string", "price": number, "photos": ["url1", "url2", "url3", "url4"],
               "specs": { "key1": "value1", "key2": "value2" }, "pluspunten": ["string"],
               "minpunten": ["string"], "onderhandelingsadvies": ["string"],
-              "eindconclusie": "string", "score": number
+              "eindconclusie": "string", "score": number, "marketAnalysis": "string"
             }
             Gebruik de GOOGLE_SEARCH tool om de opgegeven URL te bezoeken en alle benodigde informatie te verzamelen.
             
             **EXTREEM BELANGRIJKE INSTRUCTIES VOOR NAUWKEURIGHEID:**
             1.  **Analyseer UITSLUITEND de content van de opgegeven URL.** Negeer data van vergelijkbare advertenties.
             2.  **Prijs (price):** Dit is de belangrijkste waarde. Zoek naar de prijs die expliciet wordt aangeduid als 'Vraagprijs' of een vergelijkbare term. De prijs is vaak geformatteerd als '€ 34.890,-'. Je MOET dit formaat herkennen. Verwijder het euroteken, de punten, komma's en streepjes en geef alleen het getal (number) terug, bijvoorbeeld 34890. Wees extreem voorzichtig en negeer leasebedragen of andere getallen die niet de totale vraagprijs zijn. DUBBELCHECK DEZE WAARDE MEERDERE KEREN.
-            3.  **Kilometerstand (in specs):** Zoek naar 'KM stand' of 'Kilometerstand' en neem exact dat getal over. DUBBELCHECK DIT.
-            4.  **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). 
+            3.  **Marktanalyse (marketAnalysis):** NADAT je de correcte 'price' hebt gevonden, vergelijk je deze prijs met de geschatte marktwaarde voor vergelijkbare voertuigen (merk, model, bouwjaar, kilometerstand). Geef een korte, duidelijke conclusie in één zin in het Nederlands. Bijvoorbeeld: "Deze vraagprijs is marktconform." of "Deze vraagprijs is circa €1.500 onder de geschatte marktwaarde, wat een scherpe deal is."
+            4.  **Kilometerstand (in specs):** Zoek naar 'KM stand' of 'Kilometerstand' en neem exact dat getal over. DUBBELCHECK DIT.
+            5.  **Foto's (photos):** Zoek de EERSTE VIER hoofdafbeeldingen van de auto. De URLs MOETEN compleet en absoluut zijn (beginnend met http of https). 
               **FALLBACK:** Als je geen geldige, complete foto-URL's kunt vinden, geef dan een array terug met vier placeholder URLs van 'placehold.co'.
-            5.  **Specificaties (specs):** Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, brandstof, transmissie etc. Wees zo volledig mogelijk op basis van de advertentietekst.
-            6.  **Analyse:** Bepaal op basis van de CORRECTE data de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
+            6.  **Specificaties (specs):** Verzamel de belangrijkste specificaties zoals bouwjaar, kilometerstand, brandstof, transmissie etc. Wees zo volledig mogelijk op basis van de advertentietekst.
+            7.  **Analyse:** Bepaal op basis van de CORRECTE data de plus- en minpunten, advies, conclusie en een score van 0.0 tot 10.0.
         `;
 
         const userPrompt = `Analyseer de advertentie op de volgende URL: ${targetUrl}`;
