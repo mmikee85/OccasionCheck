@@ -5,100 +5,245 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Occasion Checker</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
-        .gradient-bg { background: linear-gradient(135deg, #1f2937, #111827); }
-        .card { background-color: rgba(31, 41, 55, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .carousel-item { display: none; transition: opacity 0.5s ease-in-out; }
+        .slide-in { animation: slide-in 0.5s forwards; }
+        @keyframes slide-in {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .carousel-item { display: none; }
         .carousel-item.active { display: block; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .score-circle { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; }
+        .dots-container .dot {
+            height: 8px; width: 8px; margin: 0 4px; background-color: #bbb; border-radius: 50%;
+            display: inline-block; transition: background-color 0.3s ease;
+        }
+        .dots-container .dot.active { background-color: #4a5568; }
+        .skeleton-loader {
+            background-color: #e2e8f0;
+            border-radius: 0.25rem;
+            animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            50% { opacity: .5; }
+        }
     </style>
 </head>
-<body class="gradient-bg text-gray-200 min-h-screen">
+<body class="bg-gray-100 text-gray-800">
+
     <div class="container mx-auto p-4 md:p-8 max-w-4xl">
         <header class="text-center mb-8">
-            <h1 class="text-4xl md:text-5xl font-bold text-white mb-2">🤖 AI Occasion Checker</h1>
-            <p class="text-gray-400">Plak een advertentie-URL en laat Gemini de volledige analyse doen.</p>
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-900">AI Occasion Checker</h1>
+            <p class="text-gray-600 mt-2">Plak de link van een autoadvertentie en krijg een complete AI-analyse.</p>
         </header>
-        <div class="card rounded-2xl p-6 mb-8 shadow-2xl">
-            <form id="checker-form" class="flex flex-col sm:flex-row gap-4">
-                <input type="text" id="input-field" placeholder="Plak hier de URL van de advertentie..." class="flex-grow bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
-                <button type="submit" id="submit-button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                    <span>Analyseer</span>
-                </button>
-            </form>
-            <p id="error-message" class="text-red-400 mt-2 text-sm hidden">Voer een geldige URL in.</p>
-        </div>
-        <div id="loader" class="text-center my-12 hidden">
-            <div class="loader mx-auto"></div>
-            <p class="mt-4 text-lg text-gray-300">Gemini bezoekt de link en voert de analyse uit... Dit kan even duren.</p>
-        </div>
-        <div id="results" class="hidden space-y-8">
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-3 text-white flex items-center gap-3">📝 Advertentietitel</h2><p id="ad-title" class="text-xl text-blue-300"></p></section>
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-4 text-white flex items-center gap-3">🖼️ Foto's van de Advertentie</h2><div class="relative"><div id="carousel-container" class="relative h-64 md:h-96 w-full overflow-hidden rounded-lg bg-gray-700"></div><button id="prev-btn" class="absolute top-1/2 left-2 transform -translate-y-1_2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button><button id="next-btn" class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></div></section>
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-4 text-white flex items-center gap-3">💰 Vraagprijs</h2><p id="asking-price" class="text-4xl font-bold text-green-400"></p></section>
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-4 text-white flex items-center gap-3">📋 Specificaties</h2><div id="specs-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3"></div></section>
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-4 text-white flex items-center gap-3">👍👎 Plus- & Minpunten</h2><div id="pros-cons-container" class="grid md:grid-cols-2 gap-6"></div></section>
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-4 text-white flex items-center gap-3">🤝 Onderhandelingsadvies</h2><div id="negotiation-advice" class="prose prose-invert max-w-none text-gray-300 space-y-2"></div></section>
-            <section class="card rounded-2xl p-6 shadow-lg"><h2 class="text-2xl font-bold mb-4 text-white flex items-center gap-3">🔟 Eindconclusie & Score</h2><div id="conclusion-container" class="flex flex-col md:flex-row items-center gap-6"></div></section>
-        </div>
-    </div>
-    <script>
-        const form = document.getElementById('checker-form'), inputField = document.getElementById('input-field'), submitButton = document.getElementById('submit-button'), errorMessage = document.getElementById('error-message'), loader = document.getElementById('loader'), resultsSection = document.getElementById('results'), adTitle = document.getElementById('ad-title'), carouselContainer = document.getElementById('carousel-container'), prevBtn = document.getElementById('prev-btn'), nextBtn = document.getElementById('next-btn'), askingPrice = document.getElementById('asking-price'), specsGrid = document.getElementById('specs-grid'), prosConsContainer = document.getElementById('pros-cons-container'), negotiationAdvice = document.getElementById('negotiation-advice'), conclusionContainer = document.getElementById('conclusion-container');
-        let currentImageIndex = 0, images = [];
-        
-        function updateCarousel() { document.querySelectorAll('.carousel-item').forEach((item, index) => item.classList.toggle('active', index === currentImageIndex)); }
-        prevBtn.addEventListener('click', () => { currentImageIndex = (currentImageIndex - 1 + images.length) % images.length; updateCarousel(); });
-        nextBtn.addEventListener('click', () => { currentImageIndex = (currentImageIndex + 1) % images.length; updateCarousel(); });
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const inputValue = inputField.value.trim();
-            if (!inputValue.startsWith('http')) { errorMessage.textContent = "Voer een geldige URL in (beginnend met http)."; errorMessage.classList.remove('hidden'); return; }
-            errorMessage.classList.add('hidden');
-            resultsSection.classList.add('hidden');
-            loader.classList.remove('hidden');
-            submitButton.disabled = true; submitButton.classList.add('opacity-50');
+        <main>
+            <div class="bg-white p-6 rounded-xl shadow-lg">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <input id="urlInput" type="text" placeholder="Plak hier de advertentie URL of het kenteken..." class="flex-grow p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <button id="analyzeBtn" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out transform hover:scale-105">
+                        <i class="fas fa-search mr-2"></i>Analyseer
+                    </button>
+                </div>
+            </div>
+
+            <div id="loading" class="mt-8 hidden">
+                <div class="bg-white p-6 rounded-xl shadow-lg">
+                    <div class="flex items-center justify-center mb-4">
+                        <i class="fas fa-spinner fa-spin text-3xl text-blue-600"></i>
+                        <h2 class="text-2xl font-semibold ml-4">Analyse wordt uitgevoerd...</h2>
+                    </div>
+                    <p class="text-center text-gray-600">De AI bezoekt de link, verzamelt data en stelt een compleet rapport op. Dit kan even duren.</p>
+                    <div class="mt-6 space-y-4">
+                        <div class="h-8 w-3/4 mx-auto skeleton-loader"></div>
+                        <div class="h-4 w-1/2 mx-auto skeleton-loader"></div>
+                        <div class="h-4 w-5/6 mx-auto skeleton-loader"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="error" class="mt-8 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-xl relative hidden" role="alert">
+                <strong class="font-bold">Fout: </strong>
+                <span id="errorMessage" class="block sm:inline"></span>
+            </div>
+            
+            <div id="results" class="mt-8 space-y-6 hidden">
+                <!-- Resultaten worden hier dynamisch ingevoegd -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loadingDiv = document.getElementById('loading');
+        const errorDiv = document.getElementById('error');
+        const errorMessageSpan = document.getElementById('errorMessage');
+        const resultsDiv = document.getElementById('results');
+
+        analyzeBtn.addEventListener('click', async () => {
+            const input = urlInput.value.trim();
+            if (!input) {
+                showError('Voer een URL of kenteken in.');
+                return;
+            }
+
+            hideError();
+            resultsDiv.classList.add('hidden');
+            loadingDiv.classList.remove('hidden');
+            analyzeBtn.disabled = true;
+            analyzeBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
             try {
-                const fullAnalysis = await fetchAnalysis(inputValue);
-                displayResults(fullAnalysis);
-            } catch (error) {
-                errorMessage.textContent = `Fout: ${error.message}. De AI kon de link mogelijk niet analyseren.`;
-                errorMessage.classList.remove('hidden');
+                const data = await fetchAnalysis(input);
+                displayResults(data);
+            } catch (err) {
+                showError(err.message);
             } finally {
-                loader.classList.add('hidden');
-                submitButton.disabled = false; submitButton.classList.remove('opacity-50');
+                loadingDiv.classList.add('hidden');
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('opacity-50', 'cursor-not-allowed');
             }
         });
 
-        async function fetchAnalysis(url) {
-            const ANALYZER_URL = `/api/analyzer`;
-            const response = await fetch(`${ANALYZER_URL}?url=${encodeURIComponent(url)}`);
+        // *** HIER IS DE BELANGRIJKE CORRECTIE ***
+        async function fetchAnalysis(input) {
+            const response = await fetch(`/api/analyzer?url=${encodeURIComponent(input)}`);
+            
+            // Stap 1: Controleer EERST of de server een foutstatus (bv. 500) geeft.
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'De server gaf een fout terug');
+                // Als er een fout is, probeer de foutmelding als tekst te lezen.
+                const errorText = await response.text();
+                // Probeer er JSON van te maken, maar als dat niet lukt, gebruik de ruwe tekst.
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    throw new Error(errorJson.error || 'Onbekende serverfout.');
+                } catch (e) {
+                    throw new Error(errorText || 'Onbekende serverfout.');
+                }
             }
-            return await response.json();
+            
+            // Stap 2: Alleen als de status OK is, proberen we de response als JSON te lezen.
+            const data = await response.json();
+            
+            // Extra controle voor het geval de AI zelf een fout rapporteert in de data
+            if (data.error) {
+                 throw new Error(data.error);
+            }
+
+            return data;
         }
-        
+
         function displayResults(data) {
-            adTitle.textContent = data.title;
-            images = data.photos && data.photos.length > 0 ? data.photos : ['https://placehold.co/800x600/374151/FFF?text=Geen+foto+gevonden'];
-            currentImageIndex = 0;
-            carouselContainer.innerHTML = images.map((src, i) => `<img src="${src}" alt="Foto ${i + 1}" class="carousel-item w-full h-full object-cover absolute top-0 left-0 ${i === 0 ? 'active' : ''}" onerror="this.onerror=null;this.src='https://placehold.co/800x600/374151/FFF?text=Foto+laden+mislukt';">`).join('');
-            updateCarousel();
-            askingPrice.textContent = data.price > 0 ? `€ ${data.price.toLocaleString('nl-NL')}` : 'Prijs op aanvraag';
-            specsGrid.innerHTML = data.specs ? Object.entries(data.specs).map(([k, v]) => `<div><p class="text-sm text-gray-400">${k}</p><p class="font-semibold">${v}</p></div>`).join('') : '<p>Specificaties niet gevonden.</p>';
-            prosConsContainer.innerHTML = `<div><h3 class="text-lg font-semibold mb-2 text-green-400 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Pluspunten</h3><ul class="list-disc list-inside space-y-1">${data.pluspunten.map(p => `<li>${p}</li>`).join('')}</ul></div><div><h3 class="text-lg font-semibold mb-2 text-red-400 flex items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>Minpunten</h3><ul class="list-disc list-inside space-y-1">${data.minpunten.map(p => `<li>${p}</li>`).join('')}</ul></div>`;
-            negotiationAdvice.innerHTML = `<ul>${data.onderhandelingsadvies.map(p => `<li class="flex items-start gap-2"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shrink-0 mt-1 text-blue-400"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></svg><span>${p}</span></li>`).join('')}</ul>`;
-            const score = data.score;
-            let scoreColor = (score >= 8.5) ? 'bg-green-600' : (score >= 7) ? 'bg-green-500' : (score >= 5) ? 'bg-yellow-500' : 'bg-red-500';
-            conclusionContainer.innerHTML = `<div class="score-circle ${scoreColor} text-white shadow-lg flex-shrink-0"><span>${score.toFixed(1)}</span></div><div class="text-gray-300"><p>${data.eindconclusie}</p></div>`;
-            resultsSection.classList.remove('hidden'); resultsSection.scrollIntoView({ behavior: 'smooth' });
+            resultsDiv.innerHTML = `
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">📋 Advertentie Titel</h2>
+                    <p>${data.title || 'Niet gevonden'}</p>
+                </div>
+
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">🖼️ Foto's</h2>
+                    ${generateCarousel(data.photos)}
+                </div>
+
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">💰 Vraagprijs & Marktwaarde</h2>
+                    <p class="text-3xl font-bold">€ ${data.price ? data.price.toLocaleString('nl-NL') : 'Niet gevonden'}</p>
+                    <!-- Visuele weergave van marktwaarde kan hier komen -->
+                </div>
+
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">🔧 Specificaties</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        ${Object.entries(data.specs || {}).map(([key, value]) => `<div><strong class="capitalize">${key.replace(/_/g, ' ')}:</strong> ${value}</div>`).join('')}
+                    </div>
+                </div>
+
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg grid md:grid-cols-2 gap-6">
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">👍 Pluspunten</h2>
+                        <ul class="list-disc list-inside space-y-2 text-green-700">${(data.pluspunten || []).map(p => `<li>${p}</li>`).join('')}</ul>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold mb-4">👎 Minpunten</h2>
+                        <ul class="list-disc list-inside space-y-2 text-red-700">${(data.minpunten || []).map(p => `<li>${p}</li>`).join('')}</ul>
+                    </div>
+                </div>
+
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">🤝 Onderhandelingsadvies</h2>
+                    <div class="space-y-2">${(data.onderhandelingsadvies || []).map(p => `<p>${p}</p>`).join('')}</div>
+                </div>
+                
+                <div class="slide-in bg-white p-6 rounded-xl shadow-lg">
+                    <h2 class="text-2xl font-bold mb-4">🏁 Eindconclusie & Score</h2>
+                    <div class="flex items-center">
+                        <div class="text-5xl font-bold text-blue-600">${data.score ? data.score.toFixed(1) : '?'}</div>
+                        <div class="ml-4">
+                             <p>${data.eindconclusie || 'Geen conclusie beschikbaar.'}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            resultsDiv.classList.remove('hidden');
+            initializeCarousel();
+        }
+
+        function generateCarousel(photos) {
+            if (!photos || photos.length === 0) return '<p>Geen foto\'s gevonden.</p>';
+            const items = photos.map((src, index) => `
+                <div class="carousel-item ${index === 0 ? 'active' : ''}">
+                    <img src="${src}" alt="Occasion foto ${index + 1}" class="w-full h-64 md:h-80 object-cover rounded-lg">
+                </div>
+            `).join('');
+            const dots = photos.map((_, index) => `<span class="dot ${index === 0 ? 'active' : ''}" data-slide-to="${index}"></span>`).join('');
+            
+            return `
+                <div class="relative">
+                    ${items}
+                    <button class="absolute top-1/2 left-2 transform -translate-y-1/2 bg-white bg-opacity-50 rounded-full p-2 carousel-prev"><i class="fas fa-chevron-left"></i></button>
+                    <button class="absolute top-1/2 right-2 transform -translate-y-1/2 bg-white bg-opacity-50 rounded-full p-2 carousel-next"><i class="fas fa-chevron-right"></i></button>
+                    <div class="dots-container absolute bottom-2 left-1/2 transform -translate-x-1/2">
+                        ${dots}
+                    </div>
+                </div>
+            `;
+        }
+
+        function initializeCarousel() {
+            const carousel = resultsDiv.querySelector('.relative');
+            if (!carousel) return;
+
+            const items = carousel.querySelectorAll('.carousel-item');
+            const dots = carousel.querySelectorAll('.dot');
+            let currentIndex = 0;
+
+            function showSlide(index) {
+                items.forEach((item, i) => item.classList.toggle('active', i === index));
+                dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+                currentIndex = index;
+            }
+
+            carousel.querySelector('.carousel-next').addEventListener('click', () => {
+                showSlide((currentIndex + 1) % items.length);
+            });
+            carousel.querySelector('.carousel-prev').addEventListener('click', () => {
+                showSlide((currentIndex - 1 + items.length) % items.length);
+            });
+            dots.forEach(dot => {
+                dot.addEventListener('click', () => showSlide(parseInt(dot.dataset.slideTo)));
+            });
+        }
+
+        function showError(message) {
+            errorMessageSpan.textContent = message;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            errorDiv.classList.add('hidden');
         }
     </script>
 </body>
